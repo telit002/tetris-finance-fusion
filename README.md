@@ -39,7 +39,7 @@ A modern, multiplayer Tetris game with real-time analytics and financial data vi
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/tetris-finance-fusion.git
+   git clone https://github.com/telit002/tetris-finance-fusion.git
    cd tetris-finance-fusion
    ```
 
@@ -220,8 +220,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/tetris-finance-fusion/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/tetris-finance-fusion/discussions)
+- **Issues**: [GitHub Issues](https://github.com/telit002/tetris-finance-fusion/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/telit002/tetris-finance-fusion/discussions)
 - **Email**: your-email@example.com
 
 ## 🗺️ Roadmap
@@ -237,6 +237,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Made with ❤️ for the Tetris and finance communities**
 
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/tetris-finance-fusion?style=social)](https://github.com/yourusername/tetris-finance-fusion)
-[![GitHub forks](https://img.shields.io/github/forks/yourusername/tetris-finance-fusion?style=social)](https://github.com/yourusername/tetris-finance-fusion)
-[![GitHub issues](https://img.shields.io/github/issues/yourusername/tetris-finance-fusion)](https://github.com/yourusername/tetris-finance-fusion/issues)
+[![GitHub stars](https://img.shields.io/github/stars/telit002/tetris-finance-fusion?style=social)](https://github.com/telit002/tetris-finance-fusion)
+[![GitHub forks](https://img.shields.io/github/forks/telit002/tetris-finance-fusion?style=social)](https://github.com/telit002/tetris-finance-fusion)
+[![GitHub issues](https://img.shields.io/github/issues/telit002/tetris-finance-fusion)](https://github.com/telit002/tetris-finance-fusion/issues)
