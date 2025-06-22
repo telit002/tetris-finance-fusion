@@ -38,16 +38,14 @@ const PlayerRegistration: React.FC<PlayerRegistrationProps> = ({ onPlayerReady, 
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto bg-white border-gray-200 shadow-lg">
+    <Card className="w-full max-w-md mx-auto bg-white border-gray-200 shadow-xl transform hover:scale-105 transition-transform duration-200">
       <CardHeader className="text-center bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-t-lg">
         <div className="flex justify-center mb-4">
-          <img 
-            src="https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=120&h=40&fit=crop&crop=center"
-            alt="Valantic Logo"
-            className="h-10 w-auto bg-white px-2 py-1 rounded"
-          />
+          <div className="h-10 w-36 bg-white px-3 py-2 rounded shadow-sm flex items-center justify-center">
+            <div className="text-base font-bold text-purple-700">VALANTIC</div>
+          </div>
         </div>
-        <CardTitle className="text-2xl">Player {playerNumber}</CardTitle>
+        <CardTitle className="text-2xl font-bold">Player {playerNumber}</CardTitle>
         <CardDescription className="text-purple-100">
           Join the Valantic Digital Finance Tetris Championship
         </CardDescription>
@@ -64,7 +62,7 @@ const PlayerRegistration: React.FC<PlayerRegistrationProps> = ({ onPlayerReady, 
               value={playerData.nickname}
               onChange={(e) => handleInputChange('nickname', e.target.value)}
               placeholder="Enter your gaming nickname"
-              className="border-gray-300 focus:border-purple-500 focus:ring-purple-500"
+              className="border-gray-300 focus:border-purple-500 focus:ring-purple-500 transition-colors"
               required
             />
           </div>
@@ -79,7 +77,7 @@ const PlayerRegistration: React.FC<PlayerRegistrationProps> = ({ onPlayerReady, 
               value={playerData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
               placeholder="your.email@company.com"
-              className="border-gray-300 focus:border-purple-500 focus:ring-purple-500"
+              className="border-gray-300 focus:border-purple-500 focus:ring-purple-500 transition-colors"
             />
           </div>
           
@@ -93,7 +91,7 @@ const PlayerRegistration: React.FC<PlayerRegistrationProps> = ({ onPlayerReady, 
               value={playerData.company}
               onChange={(e) => handleInputChange('company', e.target.value)}
               placeholder="Your company name"
-              className="border-gray-300 focus:border-purple-500 focus:ring-purple-500"
+              className="border-gray-300 focus:border-purple-500 focus:ring-purple-500 transition-colors"
             />
           </div>
           
@@ -107,13 +105,13 @@ const PlayerRegistration: React.FC<PlayerRegistrationProps> = ({ onPlayerReady, 
               value={playerData.realName}
               onChange={(e) => handleInputChange('realName', e.target.value)}
               placeholder="Your real name"
-              className="border-gray-300 focus:border-purple-500 focus:ring-purple-500"
+              className="border-gray-300 focus:border-purple-500 focus:ring-purple-500 transition-colors"
             />
           </div>
           
           <Button 
             type="submit" 
-            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 rounded-lg shadow-md transition-all duration-200"
+            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105"
             disabled={!playerData.nickname.trim()}
           >
             <Gamepad className="w-5 h-5 mr-2" />

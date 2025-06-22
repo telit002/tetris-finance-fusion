@@ -1,6 +1,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 export interface GameStats {
   score: number;
@@ -38,15 +39,16 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameLoopRef = useRef<number | null>(null);
   const dropTimerRef = useRef<number | null>(null);
-  const gamepadRef = useRef<Gamepad | null>(null);
+  const lastDropTime = useRef<number>(0);
   
-  const [gameState, setGameState] = useState({
-    board: Array(BOARD_HEIGHT).fill(null).map(() => Array(BOARD_WIDTH).fill(0)),
-    currentPiece: null as any,
-    currentPosition: { x: 0, y: 0 },
-    isGameOver: false,
-    isPaused: false
-  });
+  const [board, setBoard] = useState<number[][]>(() => 
+    Array(BOARD_HEIGHT).fill(null).map(() => Array(BOARD_WIDTH).fill(0))
+  );
+  
+  const [currentPiece, setCurrentPiece] = useState<any>(null);
+  const [currentPosition, setCurrentPosition] = useState({ x: 4, y: 0 });
+  const [isGameOver, setIsGameOver] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   const [stats, setStats] = useState<GameStats>({
     score: 0,
@@ -60,13 +62,10 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     inputMethod: 'keyboard'
   });
 
-  const [lastPieceTime, setLastPieceTime] = useState<number>(0);
-
   // Generate random piece
   const generatePiece = useCallback(() => {
     const pieces = Object.keys(TETROMINOES);
     const randomPiece = pieces[Math.floor(Math.random() * pieces.length)] as keyof typeof TETROMINOES;
-    setLastPieceTime(Date.now());
     return {
       type: randomPiece,
       shape: TETROMINOES[randomPiece].shape,
@@ -75,18 +74,20 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
   }, []);
 
   // Check collision
-  const checkCollision = useCallback((piece: any, position: { x: number; y: number }, board: number[][]) => {
+  const checkCollision = useCallback((piece: any, pos: { x: number; y: number }, gameBoard: number[][]) => {
+    if (!piece || !piece.shape) return true;
+    
     for (let y = 0; y < piece.shape.length; y++) {
       for (let x = 0; x < piece.shape[y].length; x++) {
         if (piece.shape[y][x]) {
-          const newX = position.x + x;
-          const newY = position.y + y;
+          const newX = pos.x + x;
+          const newY = pos.y + y;
           
           if (newX < 0 || newX >= BOARD_WIDTH || newY >= BOARD_HEIGHT) {
             return true;
           }
           
-          if (newY >= 0 && board[newY][newX]) {
+          if (newY >= 0 && gameBoard[newY] && gameBoard[newY][newX]) {
             return true;
           }
         }
@@ -97,6 +98,7 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
 
   // Rotate piece
   const rotatePiece = useCallback((piece: any) => {
+    if (!piece || !piece.shape) return piece;
     const rotated = piece.shape[0].map((_: any, index: number) =>
       piece.shape.map((row: any) => row[index]).reverse()
     );
@@ -104,8 +106,8 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
   }, []);
 
   // Clear lines
-  const clearLines = useCallback((board: number[][]) => {
-    const newBoard = board.filter(row => row.some(cell => cell === 0));
+  const clearLines = useCallback((gameBoard: number[][]) => {
+    const newBoard = gameBoard.filter(row => row.some(cell => cell === 0));
     const linesCleared = BOARD_HEIGHT - newBoard.length;
     
     if (linesCleared > 0) {
@@ -126,18 +128,20 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
       return updatedBoard;
     }
     
-    return board;
+    return gameBoard;
   }, []);
 
   // Place piece on board
-  const placePiece = useCallback((piece: any, position: { x: number; y: number }, board: number[][]) => {
-    const newBoard = board.map(row => [...row]);
+  const placePiece = useCallback((piece: any, pos: { x: number; y: number }, gameBoard: number[][]) => {
+    if (!piece || !piece.shape) return gameBoard;
+    
+    const newBoard = gameBoard.map(row => [...row]);
     
     for (let y = 0; y < piece.shape.length; y++) {
       for (let x = 0; x < piece.shape[y].length; x++) {
         if (piece.shape[y][x]) {
-          const boardX = position.x + x;
-          const boardY = position.y + y;
+          const boardX = pos.x + x;
+          const boardY = pos.y + y;
           if (boardX >= 0 && boardX < BOARD_WIDTH && boardY >= 0 && boardY < BOARD_HEIGHT) {
             newBoard[boardY][boardX] = 1;
           }
@@ -155,108 +159,59 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
 
   // Move piece
   const movePiece = useCallback((dx: number, dy: number, rotate = false) => {
-    if (gameState.isGameOver || gameState.isPaused) return;
+    if (isGameOver || isPaused || !currentPiece) return;
 
-    // Record reaction time for first input after new piece
-    if (lastPieceTime > 0) {
-      const reactionTime = Date.now() - lastPieceTime;
-      setStats(prev => ({
-        ...prev,
-        reactionTimes: [...prev.reactionTimes.slice(-9), reactionTime],
-        keypressCount: prev.keypressCount + 1
-      }));
-      setLastPieceTime(0);
-    } else {
-      setStats(prev => ({
-        ...prev,
-        keypressCount: prev.keypressCount + 1
-      }));
+    setStats(prev => ({
+      ...prev,
+      keypressCount: prev.keypressCount + 1
+    }));
+
+    let newPiece = currentPiece;
+    if (rotate) {
+      newPiece = rotatePiece(currentPiece);
     }
 
-    setGameState(prev => {
-      let newPiece = prev.currentPiece;
-      if (rotate && newPiece) {
-        newPiece = rotatePiece(newPiece);
-      }
+    const newPosition = {
+      x: currentPosition.x + dx,
+      y: currentPosition.y + dy
+    };
 
-      const newPosition = {
-        x: prev.currentPosition.x + dx,
-        y: prev.currentPosition.y + dy
-      };
-
-      if (newPiece && !checkCollision(newPiece, newPosition, prev.board)) {
-        return {
-          ...prev,
-          currentPiece: newPiece,
-          currentPosition: newPosition
-        };
-      }
-
-      return prev;
-    });
-  }, [gameState.isGameOver, gameState.isPaused, lastPieceTime, rotatePiece, checkCollision]);
+    if (!checkCollision(newPiece, newPosition, board)) {
+      setCurrentPiece(newPiece);
+      setCurrentPosition(newPosition);
+    }
+  }, [isGameOver, isPaused, currentPiece, currentPosition, board, rotatePiece, checkCollision]);
 
   // Drop piece
   const dropPiece = useCallback(() => {
-    if (gameState.isGameOver || gameState.isPaused) return;
+    if (isGameOver || isPaused || !currentPiece) return;
 
-    setGameState(prev => {
-      if (!prev.currentPiece) return prev;
+    const newPosition = {
+      x: currentPosition.x,
+      y: currentPosition.y + 1
+    };
 
-      const newPosition = {
-        x: prev.currentPosition.x,
-        y: prev.currentPosition.y + 1
-      };
+    if (!checkCollision(currentPiece, newPosition, board)) {
+      setCurrentPosition(newPosition);
+    } else {
+      // Piece has landed
+      const newBoard = placePiece(currentPiece, currentPosition, board);
+      const newPiece = generatePiece();
+      const startPosition = { x: 4, y: 0 };
 
-      if (!checkCollision(prev.currentPiece, newPosition, prev.board)) {
-        return {
-          ...prev,
-          currentPosition: newPosition
-        };
+      if (checkCollision(newPiece, startPosition, newBoard)) {
+        setIsGameOver(true);
       } else {
-        // Piece has landed
-        const newBoard = placePiece(prev.currentPiece, prev.currentPosition, prev.board);
-        const newPiece = generatePiece();
-        const startPosition = { x: Math.floor(BOARD_WIDTH / 2) - 1, y: 0 };
-
-        if (checkCollision(newPiece, startPosition, newBoard)) {
-          return {
-            ...prev,
-            board: newBoard,
-            isGameOver: true
-          };
-        }
-
-        return {
-          ...prev,
-          board: newBoard,
-          currentPiece: newPiece,
-          currentPosition: startPosition
-        };
+        setBoard(newBoard);
+        setCurrentPiece(newPiece);
+        setCurrentPosition(startPosition);
       }
-    });
-  }, [gameState.isGameOver, gameState.isPaused, checkCollision, placePiece, generatePiece]);
-
-  // Gamepad support
-  const updateGamepad = useCallback(() => {
-    const gamepads = navigator.getGamepads();
-    const gamepad = gamepads[playerNumber - 1];
-    
-    if (gamepad) {
-      gamepadRef.current = gamepad;
-      setStats(prev => ({ ...prev, inputMethod: 'gamepad' }));
-      
-      // Simple button mapping for common gamepads
-      if (gamepad.buttons[12]?.pressed) movePiece(0, -1); // D-pad up (rotate)
-      if (gamepad.buttons[13]?.pressed) movePiece(0, 1); // D-pad down
-      if (gamepad.buttons[14]?.pressed) movePiece(-1, 0); // D-pad left
-      if (gamepad.buttons[15]?.pressed) movePiece(1, 0); // D-pad right
-      if (gamepad.buttons[0]?.pressed) movePiece(0, 0, true); // A button (rotate)
     }
-  }, [playerNumber, movePiece]);
+  }, [isGameOver, isPaused, currentPiece, currentPosition, board, checkCollision, placePiece, generatePiece]);
 
   // Keyboard controls
   const handleKeyPress = useCallback((event: KeyboardEvent) => {
+    event.preventDefault();
     switch (event.key) {
       case 'ArrowLeft':
         movePiece(-1, 0);
@@ -273,13 +228,10 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
         break;
       case 'z':
       case 'Z':
-        // Hard drop
-        while (!gameState.isGameOver) {
-          dropPiece();
-        }
+        dropPiece();
         break;
     }
-  }, [movePiece, dropPiece, gameState.isGameOver]);
+  }, [movePiece, dropPiece]);
 
   // Drawing function
   const draw = useCallback(() => {
@@ -295,7 +247,7 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     // Draw board
     for (let y = 0; y < BOARD_HEIGHT; y++) {
       for (let x = 0; x < BOARD_WIDTH; x++) {
-        if (gameState.board[y][x]) {
+        if (board[y] && board[y][x]) {
           ctx.fillStyle = '#666';
           ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
           ctx.strokeStyle = '#333';
@@ -305,13 +257,13 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     }
 
     // Draw current piece
-    if (gameState.currentPiece) {
-      ctx.fillStyle = gameState.currentPiece.color;
-      for (let y = 0; y < gameState.currentPiece.shape.length; y++) {
-        for (let x = 0; x < gameState.currentPiece.shape[y].length; x++) {
-          if (gameState.currentPiece.shape[y][x]) {
-            const drawX = (gameState.currentPosition.x + x) * BLOCK_SIZE;
-            const drawY = (gameState.currentPosition.y + y) * BLOCK_SIZE;
+    if (currentPiece && currentPiece.shape) {
+      ctx.fillStyle = currentPiece.color;
+      for (let y = 0; y < currentPiece.shape.length; y++) {
+        for (let x = 0; x < currentPiece.shape[y].length; x++) {
+          if (currentPiece.shape[y][x]) {
+            const drawX = (currentPosition.x + x) * BLOCK_SIZE;
+            const drawY = (currentPosition.y + y) * BLOCK_SIZE;
             ctx.fillRect(drawX, drawY, BLOCK_SIZE, BLOCK_SIZE);
             ctx.strokeStyle = '#000';
             ctx.strokeRect(drawX, drawY, BLOCK_SIZE, BLOCK_SIZE);
@@ -322,6 +274,7 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
 
     // Draw grid
     ctx.strokeStyle = '#333';
+    ctx.lineWidth = 1;
     for (let x = 0; x <= BOARD_WIDTH; x++) {
       ctx.beginPath();
       ctx.moveTo(x * BLOCK_SIZE, 0);
@@ -334,41 +287,39 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
       ctx.lineTo(BOARD_WIDTH * BLOCK_SIZE, y * BLOCK_SIZE);
       ctx.stroke();
     }
-  }, [gameState]);
+  }, [board, currentPiece, currentPosition]);
 
   // Game loop
-  const gameLoop = useCallback(() => {
-    updateGamepad();
-    draw();
-    gameLoopRef.current = requestAnimationFrame(gameLoop);
-  }, [updateGamepad, draw]);
-
-  // Initialize game
   useEffect(() => {
-    const initialPiece = generatePiece();
-    setGameState(prev => ({
-      ...prev,
-      currentPiece: initialPiece,
-      currentPosition: { x: Math.floor(BOARD_WIDTH / 2) - 1, y: 0 }
-    }));
+    const gameLoop = () => {
+      const now = Date.now();
+      if (now - lastDropTime.current > 1000) {
+        dropPiece();
+        lastDropTime.current = now;
+      }
+      draw();
+      gameLoopRef.current = requestAnimationFrame(gameLoop);
+    };
 
-    // Start game loop
-    gameLoopRef.current = requestAnimationFrame(gameLoop);
-
-    // Start drop timer
-    dropTimerRef.current = window.setInterval(() => {
-      dropPiece();
-    }, 1000);
+    if (!isGameOver && !isPaused) {
+      gameLoopRef.current = requestAnimationFrame(gameLoop);
+    }
 
     return () => {
       if (gameLoopRef.current) {
         cancelAnimationFrame(gameLoopRef.current);
       }
-      if (dropTimerRef.current) {
-        clearInterval(dropTimerRef.current);
-      }
     };
-  }, [generatePiece, gameLoop, dropPiece]);
+  }, [dropPiece, draw, isGameOver, isPaused]);
+
+  // Initialize game
+  useEffect(() => {
+    if (!currentPiece) {
+      const initialPiece = generatePiece();
+      setCurrentPiece(initialPiece);
+      setCurrentPosition({ x: 4, y: 0 });
+    }
+  }, [currentPiece, generatePiece]);
 
   // Keyboard event listeners
   useEffect(() => {
@@ -384,14 +335,11 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
   }, [stats, onStatsUpdate]);
 
   const resetGame = () => {
-    setGameState({
-      board: Array(BOARD_HEIGHT).fill(null).map(() => Array(BOARD_WIDTH).fill(0)),
-      currentPiece: generatePiece(),
-      currentPosition: { x: Math.floor(BOARD_WIDTH / 2) - 1, y: 0 },
-      isGameOver: false,
-      isPaused: false
-    });
-    
+    setBoard(Array(BOARD_HEIGHT).fill(null).map(() => Array(BOARD_WIDTH).fill(0)));
+    setCurrentPiece(generatePiece());
+    setCurrentPosition({ x: 4, y: 0 });
+    setIsGameOver(false);
+    setIsPaused(false);
     setStats({
       score: 0,
       level: 1,
@@ -405,54 +353,80 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     });
   };
 
+  const togglePause = () => {
+    setIsPaused(!isPaused);
+  };
+
   return (
-    <Card className="bg-slate-900 border-slate-600">
-      <CardHeader className="text-center">
-        <CardTitle className="text-white text-xl">
+    <Card className="bg-gradient-to-br from-slate-900 to-purple-900 border-purple-600 shadow-2xl">
+      <CardHeader className="text-center bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-t-lg">
+        <CardTitle className="text-xl font-bold">
           {playerName} (Player {playerNumber})
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col items-center space-y-4">
+      <CardContent className="flex flex-col items-center space-y-4 p-6">
         <canvas
           ref={canvasRef}
           width={BOARD_WIDTH * BLOCK_SIZE}
           height={BOARD_HEIGHT * BLOCK_SIZE}
-          className="border border-slate-600 bg-black"
+          className="border-2 border-purple-400 bg-black rounded-lg shadow-inner"
         />
         
         <div className="grid grid-cols-2 gap-4 text-white text-sm w-full">
-          <div className="text-center">
-            <div className="font-mono text-lg">{stats.score.toLocaleString()}</div>
-            <div className="text-slate-400">Score</div>
+          <div className="text-center bg-purple-800/50 p-2 rounded">
+            <div className="font-mono text-lg font-bold">{stats.score.toLocaleString()}</div>
+            <div className="text-purple-200">Score</div>
           </div>
-          <div className="text-center">
-            <div className="font-mono text-lg">{stats.level}</div>
-            <div className="text-slate-400">Level</div>
+          <div className="text-center bg-blue-800/50 p-2 rounded">
+            <div className="font-mono text-lg font-bold">{stats.level}</div>
+            <div className="text-blue-200">Level</div>
           </div>
-          <div className="text-center">
-            <div className="font-mono text-lg">{stats.lines}</div>
-            <div className="text-slate-400">Lines</div>
+          <div className="text-center bg-purple-800/50 p-2 rounded">
+            <div className="font-mono text-lg font-bold">{stats.lines}</div>
+            <div className="text-purple-200">Lines</div>
           </div>
-          <div className="text-center">
-            <div className="font-mono text-lg">{stats.tetrises}</div>
-            <div className="text-slate-400">Tetrises</div>
+          <div className="text-center bg-blue-800/50 p-2 rounded">
+            <div className="font-mono text-lg font-bold">{stats.tetrises}</div>
+            <div className="text-blue-200">Tetrises</div>
           </div>
         </div>
 
-        {gameState.isGameOver && (
-          <div className="text-center">
-            <div className="text-red-400 font-bold mb-2">Game Over!</div>
-            <button
+        <div className="flex gap-2">
+          <Button
+            onClick={togglePause}
+            disabled={isGameOver}
+            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+          >
+            {isPaused ? 'Resume' : 'Pause'}
+          </Button>
+          
+          {isGameOver && (
+            <Button
               onClick={resetGame}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
             >
               Play Again
-            </button>
+            </Button>
+          )}
+        </div>
+
+        {isGameOver && (
+          <div className="text-center bg-red-900/80 p-4 rounded-lg border border-red-600">
+            <div className="text-red-300 font-bold text-lg mb-2">Game Over!</div>
+            <div className="text-white">Final Score: {stats.score.toLocaleString()}</div>
           </div>
         )}
 
-        <div className="text-xs text-slate-400 text-center">
+        {isPaused && !isGameOver && (
+          <div className="text-center bg-yellow-900/80 p-4 rounded-lg border border-yellow-600">
+            <div className="text-yellow-300 font-bold">Game Paused</div>
+          </div>
+        )}
+
+        <div className="text-xs text-purple-300 text-center bg-purple-900/30 p-2 rounded">
           Input: {stats.inputMethod} | Keypresses: {stats.keypressCount}
+          <br />
+          Controls: ← → ↓ ↑ (rotate) | Space (rotate) | Z (drop)
         </div>
       </CardContent>
     </Card>
