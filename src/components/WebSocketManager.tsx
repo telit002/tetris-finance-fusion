@@ -100,13 +100,18 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
   }, [player2Stats, player2Name]);
 
   return (
-    <div className="bg-slate-800 border border-slate-600 rounded p-3 mt-4">
-      <div className="flex items-center gap-2">
-        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-        <span className="text-sm text-slate-300">Analytics Stream Active</span>
+    <div className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg p-4 mt-4 shadow-lg">
+      <div className="flex items-center gap-3">
+        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+        <span className="text-gray-800 font-medium">SAP Analytics Cloud Connection Active</span>
       </div>
-      <div className="text-xs text-slate-400 mt-1">
-        Real-time data streaming to SAP Analytics Cloud
+      <div className="text-sm text-gray-600 mt-2 flex items-center gap-2">
+        <span>Real-time data streaming to Valantic Digital Finance Analytics Dashboard</span>
+        <div className="flex gap-1">
+          <div className="w-1 h-4 bg-purple-400 animate-pulse"></div>
+          <div className="w-1 h-4 bg-blue-400 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+          <div className="w-1 h-4 bg-purple-400 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+        </div>
       </div>
     </div>
   );

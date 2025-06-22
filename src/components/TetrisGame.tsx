@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export interface GameStats {
   score: number;
@@ -10,7 +10,6 @@ export interface GameStats {
   piecesPlaced: number;
   reactionTimes: number[];
   sessionStart: number;
-  lastPieceTime: number;
   keypressCount: number;
   inputMethod: 'keyboard' | 'gamepad';
 }
@@ -23,27 +22,29 @@ interface TetrisGameProps {
 
 const BOARD_WIDTH = 10;
 const BOARD_HEIGHT = 20;
-const CELL_SIZE = 30;
+const BLOCK_SIZE = 25;
 
-const PIECES = [
-  { shape: [[1,1,1,1]], color: '#00FFFF' }, // I
-  { shape: [[1,1],[1,1]], color: '#FFFF00' }, // O
-  { shape: [[0,1,0],[1,1,1]], color: '#800080' }, // T
-  { shape: [[0,1,1],[1,1,0]], color: '#00FF00' }, // S
-  { shape: [[1,1,0],[0,1,1]], color: '#FF0000' }, // Z
-  { shape: [[1,0,0],[1,1,1]], color: '#FF7F00' }, // J
-  { shape: [[0,0,1],[1,1,1]], color: '#0000FF' }, // L
-];
+const TETROMINOES = {
+  I: { shape: [[1,1,1,1]], color: '#00f5ff' },
+  O: { shape: [[1,1],[1,1]], color: '#ffff00' },
+  T: { shape: [[0,1,0],[1,1,1]], color: '#800080' },
+  S: { shape: [[0,1,1],[1,1,0]], color: '#00ff00' },
+  Z: { shape: [[1,1,0],[0,1,1]], color: '#ff0000' },
+  J: { shape: [[1,0,0],[1,1,1]], color: '#0000ff' },
+  L: { shape: [[0,0,1],[1,1,1]], color: '#ffa500' }
+};
 
 const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onStatsUpdate }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const gameLoopRef = useRef<number>();
+  const gameLoopRef = useRef<number | null>(null);
+  const dropTimerRef = useRef<number | null>(null);
+  const gamepadRef = useRef<Gamepad | null>(null);
+  
   const [gameState, setGameState] = useState({
     board: Array(BOARD_HEIGHT).fill(null).map(() => Array(BOARD_WIDTH).fill(0)),
     currentPiece: null as any,
-    currentX: 0,
-    currentY: 0,
-    gameOver: false,
+    currentPosition: { x: 0, y: 0 },
+    isGameOver: false,
     isPaused: false
   });
 
@@ -55,34 +56,31 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     piecesPlaced: 0,
     reactionTimes: [],
     sessionStart: Date.now(),
-    lastPieceTime: Date.now(),
     keypressCount: 0,
     inputMethod: 'keyboard'
   });
 
-  const spawnPiece = useCallback(() => {
-    const piece = PIECES[Math.floor(Math.random() * PIECES.length)];
-    const newPieceTime = Date.now();
-    
-    setStats(prev => ({
-      ...prev,
-      lastPieceTime: newPieceTime
-    }));
+  const [lastPieceTime, setLastPieceTime] = useState<number>(0);
 
-    setGameState(prev => ({
-      ...prev,
-      currentPiece: piece,
-      currentX: Math.floor(BOARD_WIDTH / 2) - 1,
-      currentY: 0
-    }));
+  // Generate random piece
+  const generatePiece = useCallback(() => {
+    const pieces = Object.keys(TETROMINOES);
+    const randomPiece = pieces[Math.floor(Math.random() * pieces.length)] as keyof typeof TETROMINOES;
+    setLastPieceTime(Date.now());
+    return {
+      type: randomPiece,
+      shape: TETROMINOES[randomPiece].shape,
+      color: TETROMINOES[randomPiece].color
+    };
   }, []);
 
-  const checkCollision = (board: number[][], piece: any, x: number, y: number) => {
-    for (let py = 0; py < piece.shape.length; py++) {
-      for (let px = 0; px < piece.shape[py].length; px++) {
-        if (piece.shape[py][px]) {
-          const newX = x + px;
-          const newY = y + py;
+  // Check collision
+  const checkCollision = useCallback((piece: any, position: { x: number; y: number }, board: number[][]) => {
+    for (let y = 0; y < piece.shape.length; y++) {
+      for (let x = 0; x < piece.shape[y].length; x++) {
+        if (piece.shape[y][x]) {
+          const newX = position.x + x;
+          const newY = position.y + y;
           
           if (newX < 0 || newX >= BOARD_WIDTH || newY >= BOARD_HEIGHT) {
             return true;
@@ -95,220 +93,196 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
       }
     }
     return false;
-  };
+  }, []);
 
-  const placePiece = useCallback(() => {
-    const newBoard = [...gameState.board];
-    const { currentPiece, currentX, currentY } = gameState;
+  // Rotate piece
+  const rotatePiece = useCallback((piece: any) => {
+    const rotated = piece.shape[0].map((_: any, index: number) =>
+      piece.shape.map((row: any) => row[index]).reverse()
+    );
+    return { ...piece, shape: rotated };
+  }, []);
+
+  // Clear lines
+  const clearLines = useCallback((board: number[][]) => {
+    const newBoard = board.filter(row => row.some(cell => cell === 0));
+    const linesCleared = BOARD_HEIGHT - newBoard.length;
     
-    for (let py = 0; py < currentPiece.shape.length; py++) {
-      for (let px = 0; px < currentPiece.shape[py].length; px++) {
-        if (currentPiece.shape[py][px]) {
-          const boardY = currentY + py;
-          const boardX = currentX + px;
-          if (boardY >= 0) {
+    if (linesCleared > 0) {
+      const emptyRows = Array(linesCleared).fill(null).map(() => Array(BOARD_WIDTH).fill(0));
+      const updatedBoard = [...emptyRows, ...newBoard];
+      
+      const scoreIncrease = linesCleared === 4 ? 1000 : linesCleared * 100;
+      const isTetris = linesCleared === 4;
+      
+      setStats(prev => ({
+        ...prev,
+        lines: prev.lines + linesCleared,
+        score: prev.score + scoreIncrease,
+        tetrises: prev.tetrises + (isTetris ? 1 : 0),
+        level: Math.floor((prev.lines + linesCleared) / 10) + 1
+      }));
+      
+      return updatedBoard;
+    }
+    
+    return board;
+  }, []);
+
+  // Place piece on board
+  const placePiece = useCallback((piece: any, position: { x: number; y: number }, board: number[][]) => {
+    const newBoard = board.map(row => [...row]);
+    
+    for (let y = 0; y < piece.shape.length; y++) {
+      for (let x = 0; x < piece.shape[y].length; x++) {
+        if (piece.shape[y][x]) {
+          const boardX = position.x + x;
+          const boardY = position.y + y;
+          if (boardX >= 0 && boardX < BOARD_WIDTH && boardY >= 0 && boardY < BOARD_HEIGHT) {
             newBoard[boardY][boardX] = 1;
           }
         }
       }
     }
+    
+    setStats(prev => ({
+      ...prev,
+      piecesPlaced: prev.piecesPlaced + 1
+    }));
+    
+    return clearLines(newBoard);
+  }, [clearLines]);
 
-    // Check for line clears
-    const clearedLines: number[] = [];
-    for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
-      if (newBoard[y].every(cell => cell !== 0)) {
-        clearedLines.push(y);
+  // Move piece
+  const movePiece = useCallback((dx: number, dy: number, rotate = false) => {
+    if (gameState.isGameOver || gameState.isPaused) return;
+
+    // Record reaction time for first input after new piece
+    if (lastPieceTime > 0) {
+      const reactionTime = Date.now() - lastPieceTime;
+      setStats(prev => ({
+        ...prev,
+        reactionTimes: [...prev.reactionTimes.slice(-9), reactionTime],
+        keypressCount: prev.keypressCount + 1
+      }));
+      setLastPieceTime(0);
+    } else {
+      setStats(prev => ({
+        ...prev,
+        keypressCount: prev.keypressCount + 1
+      }));
+    }
+
+    setGameState(prev => {
+      let newPiece = prev.currentPiece;
+      if (rotate && newPiece) {
+        newPiece = rotatePiece(newPiece);
       }
-    }
 
-    // Remove cleared lines
-    clearedLines.forEach(line => {
-      newBoard.splice(line, 1);
-      newBoard.unshift(Array(BOARD_WIDTH).fill(0));
+      const newPosition = {
+        x: prev.currentPosition.x + dx,
+        y: prev.currentPosition.y + dy
+      };
+
+      if (newPiece && !checkCollision(newPiece, newPosition, prev.board)) {
+        return {
+          ...prev,
+          currentPiece: newPiece,
+          currentPosition: newPosition
+        };
+      }
+
+      return prev;
     });
+  }, [gameState.isGameOver, gameState.isPaused, lastPieceTime, rotatePiece, checkCollision]);
 
-    const linesCleared = clearedLines.length;
-    const isTetrises = linesCleared === 4;
+  // Drop piece
+  const dropPiece = useCallback(() => {
+    if (gameState.isGameOver || gameState.isPaused) return;
 
-    setStats(prev => ({
-      ...prev,
-      score: prev.score + (linesCleared * 100 * prev.level),
-      lines: prev.lines + linesCleared,
-      tetrises: prev.tetrises + (isTetrises ? 1 : 0),
-      piecesPlaced: prev.piecesPlaced + 1,
-      level: Math.floor(prev.lines / 10) + 1
-    }));
+    setGameState(prev => {
+      if (!prev.currentPiece) return prev;
 
-    setGameState(prev => ({
-      ...prev,
-      board: newBoard
-    }));
+      const newPosition = {
+        x: prev.currentPosition.x,
+        y: prev.currentPosition.y + 1
+      };
 
-    spawnPiece();
-  }, [gameState, spawnPiece]);
+      if (!checkCollision(prev.currentPiece, newPosition, prev.board)) {
+        return {
+          ...prev,
+          currentPosition: newPosition
+        };
+      } else {
+        // Piece has landed
+        const newBoard = placePiece(prev.currentPiece, prev.currentPosition, prev.board);
+        const newPiece = generatePiece();
+        const startPosition = { x: Math.floor(BOARD_WIDTH / 2) - 1, y: 0 };
 
-  const rotatePiece = (piece: any) => {
-    const rotated = piece.shape[0].map((_: any, index: number) =>
-      piece.shape.map((row: any) => row[index]).reverse()
-    );
-    return { ...piece, shape: rotated };
-  };
-
-  const handleInput = useCallback((action: string) => {
-    if (gameState.gameOver || gameState.isPaused) return;
-
-    const currentTime = Date.now();
-    const reactionTime = currentTime - stats.lastPieceTime;
-
-    setStats(prev => ({
-      ...prev,
-      keypressCount: prev.keypressCount + 1,
-      reactionTimes: prev.reactionTimes.length < 100 
-        ? [...prev.reactionTimes, reactionTime]
-        : [...prev.reactionTimes.slice(1), reactionTime]
-    }));
-
-    const { board, currentPiece, currentX, currentY } = gameState;
-
-    switch (action) {
-      case 'left':
-        if (!checkCollision(board, currentPiece, currentX - 1, currentY)) {
-          setGameState(prev => ({ ...prev, currentX: prev.currentX - 1 }));
+        if (checkCollision(newPiece, startPosition, newBoard)) {
+          return {
+            ...prev,
+            board: newBoard,
+            isGameOver: true
+          };
         }
-        break;
-      case 'right':
-        if (!checkCollision(board, currentPiece, currentX + 1, currentY)) {
-          setGameState(prev => ({ ...prev, currentX: prev.currentX + 1 }));
-        }
-        break;
-      case 'down':
-        if (!checkCollision(board, currentPiece, currentX, currentY + 1)) {
-          setGameState(prev => ({ ...prev, currentY: prev.currentY + 1 }));
-        } else {
-          placePiece();
-        }
-        break;
-      case 'rotate':
-        const rotated = rotatePiece(currentPiece);
-        if (!checkCollision(board, rotated, currentX, currentY)) {
-          setGameState(prev => ({ ...prev, currentPiece: rotated }));
-        }
-        break;
-      case 'drop':
-        let newY = currentY;
-        while (!checkCollision(board, currentPiece, currentX, newY + 1)) {
-          newY++;
-        }
-        setGameState(prev => ({ ...prev, currentY: newY }));
-        placePiece();
-        break;
+
+        return {
+          ...prev,
+          board: newBoard,
+          currentPiece: newPiece,
+          currentPosition: startPosition
+        };
+      }
+    });
+  }, [gameState.isGameOver, gameState.isPaused, checkCollision, placePiece, generatePiece]);
+
+  // Gamepad support
+  const updateGamepad = useCallback(() => {
+    const gamepads = navigator.getGamepads();
+    const gamepad = gamepads[playerNumber - 1];
+    
+    if (gamepad) {
+      gamepadRef.current = gamepad;
+      setStats(prev => ({ ...prev, inputMethod: 'gamepad' }));
+      
+      // Simple button mapping for common gamepads
+      if (gamepad.buttons[12]?.pressed) movePiece(0, -1); // D-pad up (rotate)
+      if (gamepad.buttons[13]?.pressed) movePiece(0, 1); // D-pad down
+      if (gamepad.buttons[14]?.pressed) movePiece(-1, 0); // D-pad left
+      if (gamepad.buttons[15]?.pressed) movePiece(1, 0); // D-pad right
+      if (gamepad.buttons[0]?.pressed) movePiece(0, 0, true); // A button (rotate)
     }
-  }, [gameState, stats.lastPieceTime, placePiece]);
+  }, [playerNumber, movePiece]);
 
   // Keyboard controls
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case 'ArrowLeft':
-          handleInput('left');
-          break;
-        case 'ArrowRight':
-          handleInput('right');
-          break;
-        case 'ArrowDown':
-          handleInput('down');
-          break;
-        case 'ArrowUp':
-        case ' ':
-          handleInput('rotate');
-          break;
-        case 'z':
-        case 'Z':
-          handleInput('drop');
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [handleInput]);
-
-  // Gamepad controls
-  useEffect(() => {
-    let gamepadIndex = -1;
-    const checkGamepads = () => {
-      const gamepads = navigator.getGamepads();
-      for (let i = 0; i < gamepads.length; i++) {
-        if (gamepads[i]) {
-          gamepadIndex = i;
-          setStats(prev => ({ ...prev, inputMethod: 'gamepad' }));
-          break;
+  const handleKeyPress = useCallback((event: KeyboardEvent) => {
+    switch (event.key) {
+      case 'ArrowLeft':
+        movePiece(-1, 0);
+        break;
+      case 'ArrowRight':
+        movePiece(1, 0);
+        break;
+      case 'ArrowDown':
+        movePiece(0, 1);
+        break;
+      case 'ArrowUp':
+      case ' ':
+        movePiece(0, 0, true);
+        break;
+      case 'z':
+      case 'Z':
+        // Hard drop
+        while (!gameState.isGameOver) {
+          dropPiece();
         }
-      }
-    };
-
-    const handleGamepadInput = () => {
-      if (gamepadIndex >= 0) {
-        const gamepad = navigator.getGamepads()[gamepadIndex];
-        if (gamepad) {
-          // D-pad and analog stick controls
-          if (gamepad.axes[0] < -0.5 || gamepad.buttons[14]?.pressed) {
-            handleInput('left');
-          }
-          if (gamepad.axes[0] > 0.5 || gamepad.buttons[15]?.pressed) {
-            handleInput('right');
-          }
-          if (gamepad.axes[1] > 0.5 || gamepad.buttons[13]?.pressed) {
-            handleInput('down');
-          }
-          if (gamepad.buttons[0]?.pressed || gamepad.buttons[12]?.pressed) {
-            handleInput('rotate');
-          }
-          if (gamepad.buttons[1]?.pressed) {
-            handleInput('drop');
-          }
-        }
-      }
-    };
-
-    checkGamepads();
-    const gamepadInterval = setInterval(() => {
-      checkGamepads();
-      handleGamepadInput();
-    }, 100);
-
-    return () => clearInterval(gamepadInterval);
-  }, [handleInput]);
-
-  // Game loop
-  useEffect(() => {
-    if (!gameState.currentPiece) {
-      spawnPiece();
+        break;
     }
+  }, [movePiece, dropPiece, gameState.isGameOver]);
 
-    const gameLoop = () => {
-      if (!gameState.gameOver && !gameState.isPaused) {
-        const { board, currentPiece, currentX, currentY } = gameState;
-        if (currentPiece && !checkCollision(board, currentPiece, currentX, currentY + 1)) {
-          setGameState(prev => ({ ...prev, currentY: prev.currentY + 1 }));
-        } else if (currentPiece) {
-          placePiece();
-        }
-      }
-      gameLoopRef.current = setTimeout(gameLoop, Math.max(50, 1000 - (stats.level * 50)));
-    };
-
-    gameLoopRef.current = setTimeout(gameLoop, 1000);
-
-    return () => {
-      if (gameLoopRef.current) {
-        clearTimeout(gameLoopRef.current);
-      }
-    };
-  }, [gameState, stats.level, spawnPiece, placePiece]);
-
-  // Canvas rendering
-  useEffect(() => {
+  // Drawing function
+  const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -316,31 +290,16 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     if (!ctx) return;
 
     // Clear canvas
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw grid
-    ctx.strokeStyle = '#333';
-    ctx.lineWidth = 1;
-    for (let x = 0; x <= BOARD_WIDTH; x++) {
-      ctx.beginPath();
-      ctx.moveTo(x * CELL_SIZE, 0);
-      ctx.lineTo(x * CELL_SIZE, BOARD_HEIGHT * CELL_SIZE);
-      ctx.stroke();
-    }
-    for (let y = 0; y <= BOARD_HEIGHT; y++) {
-      ctx.beginPath();
-      ctx.moveTo(0, y * CELL_SIZE);
-      ctx.lineTo(BOARD_WIDTH * CELL_SIZE, y * CELL_SIZE);
-      ctx.stroke();
-    }
-
-    // Draw board pieces
+    // Draw board
     for (let y = 0; y < BOARD_HEIGHT; y++) {
       for (let x = 0; x < BOARD_WIDTH; x++) {
         if (gameState.board[y][x]) {
           ctx.fillStyle = '#666';
-          ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+          ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+          ctx.strokeStyle = '#333';
+          ctx.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
         }
       }
     }
@@ -348,81 +307,154 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     // Draw current piece
     if (gameState.currentPiece) {
       ctx.fillStyle = gameState.currentPiece.color;
-      for (let py = 0; py < gameState.currentPiece.shape.length; py++) {
-        for (let px = 0; px < gameState.currentPiece.shape[py].length; px++) {
-          if (gameState.currentPiece.shape[py][px]) {
-            const x = (gameState.currentX + px) * CELL_SIZE;
-            const y = (gameState.currentY + py) * CELL_SIZE;
-            ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+      for (let y = 0; y < gameState.currentPiece.shape.length; y++) {
+        for (let x = 0; x < gameState.currentPiece.shape[y].length; x++) {
+          if (gameState.currentPiece.shape[y][x]) {
+            const drawX = (gameState.currentPosition.x + x) * BLOCK_SIZE;
+            const drawY = (gameState.currentPosition.y + y) * BLOCK_SIZE;
+            ctx.fillRect(drawX, drawY, BLOCK_SIZE, BLOCK_SIZE);
+            ctx.strokeStyle = '#000';
+            ctx.strokeRect(drawX, drawY, BLOCK_SIZE, BLOCK_SIZE);
           }
         }
       }
     }
+
+    // Draw grid
+    ctx.strokeStyle = '#333';
+    for (let x = 0; x <= BOARD_WIDTH; x++) {
+      ctx.beginPath();
+      ctx.moveTo(x * BLOCK_SIZE, 0);
+      ctx.lineTo(x * BLOCK_SIZE, BOARD_HEIGHT * BLOCK_SIZE);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= BOARD_HEIGHT; y++) {
+      ctx.beginPath();
+      ctx.moveTo(0, y * BLOCK_SIZE);
+      ctx.lineTo(BOARD_WIDTH * BLOCK_SIZE, y * BLOCK_SIZE);
+      ctx.stroke();
+    }
   }, [gameState]);
+
+  // Game loop
+  const gameLoop = useCallback(() => {
+    updateGamepad();
+    draw();
+    gameLoopRef.current = requestAnimationFrame(gameLoop);
+  }, [updateGamepad, draw]);
+
+  // Initialize game
+  useEffect(() => {
+    const initialPiece = generatePiece();
+    setGameState(prev => ({
+      ...prev,
+      currentPiece: initialPiece,
+      currentPosition: { x: Math.floor(BOARD_WIDTH / 2) - 1, y: 0 }
+    }));
+
+    // Start game loop
+    gameLoopRef.current = requestAnimationFrame(gameLoop);
+
+    // Start drop timer
+    dropTimerRef.current = window.setInterval(() => {
+      dropPiece();
+    }, 1000);
+
+    return () => {
+      if (gameLoopRef.current) {
+        cancelAnimationFrame(gameLoopRef.current);
+      }
+      if (dropTimerRef.current) {
+        clearInterval(dropTimerRef.current);
+      }
+    };
+  }, [generatePiece, gameLoop, dropPiece]);
+
+  // Keyboard event listeners
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyPress);
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [handleKeyPress]);
 
   // Update stats callback
   useEffect(() => {
     onStatsUpdate(stats);
   }, [stats, onStatsUpdate]);
 
+  const resetGame = () => {
+    setGameState({
+      board: Array(BOARD_HEIGHT).fill(null).map(() => Array(BOARD_WIDTH).fill(0)),
+      currentPiece: generatePiece(),
+      currentPosition: { x: Math.floor(BOARD_WIDTH / 2) - 1, y: 0 },
+      isGameOver: false,
+      isPaused: false
+    });
+    
+    setStats({
+      score: 0,
+      level: 1,
+      lines: 0,
+      tetrises: 0,
+      piecesPlaced: 0,
+      reactionTimes: [],
+      sessionStart: Date.now(),
+      keypressCount: 0,
+      inputMethod: 'keyboard'
+    });
+  };
+
   return (
-    <Card className="bg-slate-900 border-slate-600 p-4">
-      <div className="text-center mb-4">
-        <h3 className="text-xl font-bold text-white">{playerName}</h3>
-        <p className="text-slate-300">Player {playerNumber}</p>
-      </div>
-      
-      <div className="flex gap-4">
-        <div>
-          <canvas
-            ref={canvasRef}
-            width={BOARD_WIDTH * CELL_SIZE}
-            height={BOARD_HEIGHT * CELL_SIZE}
-            className="border border-slate-600 bg-black"
-          />
-        </div>
+    <Card className="bg-slate-900 border-slate-600">
+      <CardHeader className="text-center">
+        <CardTitle className="text-white text-xl">
+          {playerName} (Player {playerNumber})
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col items-center space-y-4">
+        <canvas
+          ref={canvasRef}
+          width={BOARD_WIDTH * BLOCK_SIZE}
+          height={BOARD_HEIGHT * BLOCK_SIZE}
+          className="border border-slate-600 bg-black"
+        />
         
-        <div className="text-white space-y-2 min-w-[120px]">
-          <div>
-            <div className="text-sm text-slate-400">Score</div>
-            <div className="text-lg font-mono">{stats.score.toLocaleString()}</div>
+        <div className="grid grid-cols-2 gap-4 text-white text-sm w-full">
+          <div className="text-center">
+            <div className="font-mono text-lg">{stats.score.toLocaleString()}</div>
+            <div className="text-slate-400">Score</div>
           </div>
-          <div>
-            <div className="text-sm text-slate-400">Level</div>
-            <div className="text-lg font-mono">{stats.level}</div>
+          <div className="text-center">
+            <div className="font-mono text-lg">{stats.level}</div>
+            <div className="text-slate-400">Level</div>
           </div>
-          <div>
-            <div className="text-sm text-slate-400">Lines</div>
-            <div className="text-lg font-mono">{stats.lines}</div>
+          <div className="text-center">
+            <div className="font-mono text-lg">{stats.lines}</div>
+            <div className="text-slate-400">Lines</div>
           </div>
-          <div>
-            <div className="text-sm text-slate-400">Tetrises</div>
-            <div className="text-lg font-mono">{stats.tetrises}</div>
-          </div>
-          <div>
-            <div className="text-sm text-slate-400">Pieces</div>
-            <div className="text-lg font-mono">{stats.piecesPlaced}</div>
-          </div>
-          <div>
-            <div className="text-sm text-slate-400">Avg Reaction</div>
-            <div className="text-lg font-mono">
-              {stats.reactionTimes.length > 0 
-                ? Math.round(stats.reactionTimes.reduce((a, b) => a + b, 0) / stats.reactionTimes.length)
-                : 0}ms
-            </div>
-          </div>
-          <div>
-            <div className="text-sm text-slate-400">Input</div>
-            <div className="text-sm text-blue-400 capitalize">{stats.inputMethod}</div>
+          <div className="text-center">
+            <div className="font-mono text-lg">{stats.tetrises}</div>
+            <div className="text-slate-400">Tetrises</div>
           </div>
         </div>
-      </div>
-      
-      <div className="mt-4 text-xs text-slate-400 space-y-1">
-        <div>Controls: Arrow keys / Gamepad</div>
-        <div>Space/A: Rotate • Z/B: Drop</div>
-        <div>Session: {Math.round((Date.now() - stats.sessionStart) / 1000)}s</div>
-      </div>
+
+        {gameState.isGameOver && (
+          <div className="text-center">
+            <div className="text-red-400 font-bold mb-2">Game Over!</div>
+            <button
+              onClick={resetGame}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+            >
+              Play Again
+            </button>
+          </div>
+        )}
+
+        <div className="text-xs text-slate-400 text-center">
+          Input: {stats.inputMethod} | Keypresses: {stats.keypressCount}
+        </div>
+      </CardContent>
     </Card>
   );
 };

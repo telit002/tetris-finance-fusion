@@ -40,21 +40,22 @@ const GameDashboard: React.FC<GameDashboardProps> = ({ player1Stats, player2Stat
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-      <Card className="bg-slate-900 border-slate-600">
+      <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-lg">
         <CardHeader>
-          <CardTitle className="text-white">Score Over Time</CardTitle>
+          <CardTitle className="text-gray-800">Score Over Time</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="time" stroke="#9CA3AF" />
-              <YAxis stroke="#9CA3AF" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis dataKey="time" stroke="#6B7280" />
+              <YAxis stroke="#6B7280" />
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: '#1F2937', 
-                  border: '1px solid #374151',
-                  color: '#fff'
+                  backgroundColor: 'white', 
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                 }} 
               />
               {player1Stats && (
@@ -62,8 +63,8 @@ const GameDashboard: React.FC<GameDashboardProps> = ({ player1Stats, player2Stat
                   data={generateScoreData(player1Stats)}
                   type="monotone" 
                   dataKey="score" 
-                  stroke="#3B82F6" 
-                  strokeWidth={2}
+                  stroke="#7C3AED" 
+                  strokeWidth={3}
                   name="Player 1"
                 />
               )}
@@ -72,8 +73,8 @@ const GameDashboard: React.FC<GameDashboardProps> = ({ player1Stats, player2Stat
                   data={generateScoreData(player2Stats)}
                   type="monotone" 
                   dataKey="score" 
-                  stroke="#EF4444" 
-                  strokeWidth={2}
+                  stroke="#2563EB" 
+                  strokeWidth={3}
                   name="Player 2"
                 />
               )}
@@ -82,21 +83,22 @@ const GameDashboard: React.FC<GameDashboardProps> = ({ player1Stats, player2Stat
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-900 border-slate-600">
+      <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-lg">
         <CardHeader>
-          <CardTitle className="text-white">Average Reaction Time</CardTitle>
+          <CardTitle className="text-gray-800">Average Reaction Time</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={reactionTimeData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="player" stroke="#9CA3AF" />
-              <YAxis stroke="#9CA3AF" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis dataKey="player" stroke="#6B7280" />
+              <YAxis stroke="#6B7280" />
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: '#1F2937', 
-                  border: '1px solid #374151',
-                  color: '#fff'
+                  backgroundColor: 'white', 
+                  border: '1px solid #E5E7EB',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                 }} 
               />
               <Bar dataKey="avgReaction" />
@@ -105,9 +107,9 @@ const GameDashboard: React.FC<GameDashboardProps> = ({ player1Stats, player2Stat
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-900 border-slate-600">
+      <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-lg">
         <CardHeader>
-          <CardTitle className="text-white">Leaderboard</CardTitle>
+          <CardTitle className="text-gray-800">Leaderboard</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -115,16 +117,16 @@ const GameDashboard: React.FC<GameDashboardProps> = ({ player1Stats, player2Stat
               .filter(stats => stats !== null)
               .sort((a, b) => (b?.score || 0) - (a?.score || 0))
               .map((stats, index) => (
-                <div key={index} className="flex justify-between items-center p-3 bg-slate-800 rounded">
+                <div key={index} className="flex justify-between items-center p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-100">
                   <div>
-                    <div className="text-white font-semibold">Player {stats === player1Stats ? '1' : '2'}</div>
-                    <div className="text-slate-400 text-sm">
+                    <div className="text-gray-800 font-semibold">Player {stats === player1Stats ? '1' : '2'}</div>
+                    <div className="text-gray-600 text-sm">
                       Level {stats?.level} • {stats?.tetrises} Tetrises
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-lg font-mono text-white">{stats?.score.toLocaleString()}</div>
-                    <div className="text-sm text-slate-400">{stats?.lines} lines</div>
+                    <div className="text-lg font-mono text-purple-700 font-bold">{stats?.score.toLocaleString()}</div>
+                    <div className="text-sm text-gray-600">{stats?.lines} lines</div>
                   </div>
                 </div>
               ))}
@@ -132,35 +134,35 @@ const GameDashboard: React.FC<GameDashboardProps> = ({ player1Stats, player2Stat
         </CardContent>
       </Card>
 
-      <Card className="bg-slate-900 border-slate-600">
+      <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-lg">
         <CardHeader>
-          <CardTitle className="text-white">Session Overview</CardTitle>
+          <CardTitle className="text-gray-800">Session Overview</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 text-center">
-            <div className="bg-slate-800 p-3 rounded">
-              <div className="text-2xl font-mono text-blue-400">
+            <div className="bg-gradient-to-br from-purple-100 to-purple-200 p-3 rounded-lg">
+              <div className="text-2xl font-mono text-purple-700 font-bold">
                 {player1Stats?.keypressCount || 0}
               </div>
-              <div className="text-sm text-slate-400">P1 Keypresses</div>
+              <div className="text-sm text-purple-600">P1 Keypresses</div>
             </div>
-            <div className="bg-slate-800 p-3 rounded">
-              <div className="text-2xl font-mono text-red-400">
+            <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-3 rounded-lg">
+              <div className="text-2xl font-mono text-blue-700 font-bold">
                 {player2Stats?.keypressCount || 0}
               </div>
-              <div className="text-sm text-slate-400">P2 Keypresses</div>
+              <div className="text-sm text-blue-600">P2 Keypresses</div>
             </div>
-            <div className="bg-slate-800 p-3 rounded">
-              <div className="text-2xl font-mono text-green-400">
+            <div className="bg-gradient-to-br from-green-100 to-green-200 p-3 rounded-lg">
+              <div className="text-2xl font-mono text-green-700 font-bold">
                 {((player1Stats?.piecesPlaced || 0) + (player2Stats?.piecesPlaced || 0))}
               </div>
-              <div className="text-sm text-slate-400">Total Pieces</div>
+              <div className="text-sm text-green-600">Total Pieces</div>
             </div>
-            <div className="bg-slate-800 p-3 rounded">
-              <div className="text-2xl font-mono text-yellow-400">
+            <div className="bg-gradient-to-br from-orange-100 to-orange-200 p-3 rounded-lg">
+              <div className="text-2xl font-mono text-orange-700 font-bold">
                 {Math.round(((Date.now() - (player1Stats?.sessionStart || Date.now())) / 1000))}s
               </div>
-              <div className="text-sm text-slate-400">Session Time</div>
+              <div className="text-sm text-orange-600">Session Time</div>
             </div>
           </div>
         </CardContent>

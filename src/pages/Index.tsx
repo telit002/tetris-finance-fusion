@@ -53,17 +53,24 @@ const Index = () => {
 
   if (gameState === 'registration') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 p-6">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-white mb-2">
+            <div className="flex justify-center mb-6">
+              <img 
+                src="https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=200&h=60&fit=crop&crop=center"
+                alt="Valantic Logo"
+                className="h-16 w-auto bg-white px-4 py-2 rounded-lg shadow-lg"
+              />
+            </div>
+            <h1 className="text-4xl font-bold text-gray-800 mb-2">
               Valantic Digital Finance
             </h1>
-            <h2 className="text-3xl font-bold text-blue-400 mb-4">
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-4">
               Multiplayer Tetris Championship
             </h2>
-            <p className="text-slate-300 text-lg">
+            <p className="text-gray-600 text-lg">
               Real-time gameplay analytics powered by SAP Analytics Cloud
             </p>
           </div>
@@ -76,9 +83,9 @@ const Index = () => {
                 playerNumber={1}
               />
               {player1Data && (
-                <div className="mt-4 p-3 bg-green-900/20 border border-green-600 rounded text-center">
-                  <div className="text-green-400 font-semibold">✓ Player 1 Ready</div>
-                  <div className="text-white">{player1Data.nickname}</div>
+                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-center">
+                  <div className="text-green-600 font-semibold">✓ Player 1 Ready</div>
+                  <div className="text-gray-800">{player1Data.nickname}</div>
                 </div>
               )}
             </div>
@@ -89,9 +96,9 @@ const Index = () => {
                 playerNumber={2}
               />
               {player2Data && (
-                <div className="mt-4 p-3 bg-green-900/20 border border-green-600 rounded text-center">
-                  <div className="text-green-400 font-semibold">✓ Player 2 Ready</div>
-                  <div className="text-white">{player2Data.nickname}</div>
+                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-center">
+                  <div className="text-green-600 font-semibold">✓ Player 2 Ready</div>
+                  <div className="text-gray-800">{player2Data.nickname}</div>
                 </div>
               )}
             </div>
@@ -102,7 +109,7 @@ const Index = () => {
             <Button 
               onClick={startGame}
               disabled={!player1Data}
-              className="px-8 py-4 text-lg bg-blue-600 hover:bg-blue-700 text-white"
+              className="px-8 py-4 text-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg transition-all duration-200"
             >
               {player1Data && player2Data ? 'Start 2-Player Game' : 
                player1Data ? 'Start Single Player' : 
@@ -111,11 +118,11 @@ const Index = () => {
           </div>
 
           {/* Instructions */}
-          <Card className="mt-8 bg-slate-800/50 border-slate-600">
+          <Card className="mt-8 bg-white/80 backdrop-blur-sm border-gray-200 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-white">Game Instructions</CardTitle>
+              <CardTitle className="text-gray-800">Game Instructions</CardTitle>
             </CardHeader>
-            <CardContent className="text-slate-300 space-y-2">
+            <CardContent className="text-gray-600 space-y-2">
               <div><strong>Controls:</strong></div>
               <div>• Arrow Keys: Move and rotate pieces</div>
               <div>• Space: Rotate piece</div>
@@ -132,20 +139,27 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-white">
-              Valantic Tetris Championship
-            </h1>
-            <p className="text-slate-300">Live Analytics Dashboard</p>
+        <div className="flex justify-between items-center mb-6 bg-white/80 backdrop-blur-sm rounded-lg p-4 shadow-lg">
+          <div className="flex items-center gap-4">
+            <img 
+              src="https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=120&h=40&fit=crop&crop=center"
+              alt="Valantic Logo"
+              className="h-8 w-auto bg-white px-2 py-1 rounded"
+            />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">
+                Valantic Tetris Championship
+              </h1>
+              <p className="text-gray-600">Live Analytics Dashboard</p>
+            </div>
           </div>
           <Button 
             onClick={resetGame}
             variant="outline"
-            className="border-slate-600 text-white hover:bg-slate-800"
+            className="border-purple-300 text-purple-700 hover:bg-purple-50"
           >
             New Game
           </Button>
