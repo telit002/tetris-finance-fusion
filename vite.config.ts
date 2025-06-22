@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   build: {
-    outDir: 'dist',
+    outDir: 'build',
     emptyOutDir: true,
   },
   plugins: [
