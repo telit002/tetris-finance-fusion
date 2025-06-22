@@ -72,9 +72,9 @@ jobs:
           # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
           app_location: "/" # App source code path
           api_location: "/api" # Api source code path - optional
-          output_location: "build" # Built app content directory - optional
-          skip_app_build: true # Skip build since we already built it
-          skip_api_build: true # Skip API build since we already built it
+          output_location: "dist" # Built app content directory - optional
+          skip_app_build: false # Let Azure build the app
+          skip_api_build: false # Let Azure build the API
           github_id_token: ${{ steps.idtoken.outputs.result }}
           ###### End of Repository/Build Configurations ######
 
