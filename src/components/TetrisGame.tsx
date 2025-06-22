@@ -19,6 +19,7 @@ interface TetrisGameProps {
   playerNumber: number;
   playerName: string;
   onStatsUpdate: (stats: DetailedGameStats) => void;
+  onGameEnd?: (stats: DetailedGameStats) => void;
 }
 
 const BOARD_WIDTH = 10;
@@ -26,16 +27,16 @@ const BOARD_HEIGHT = 20;
 const BLOCK_SIZE = 25;
 
 const TETROMINOES = {
-  I: { shape: [[1,1,1,1]], color: '#00f5ff' },
-  O: { shape: [[1,1],[1,1]], color: '#ffff00' },
-  T: { shape: [[0,1,0],[1,1,1]], color: '#800080' },
-  S: { shape: [[0,1,1],[1,1,0]], color: '#00ff00' },
-  Z: { shape: [[1,1,0],[0,1,1]], color: '#ff0000' },
-  J: { shape: [[1,0,0],[1,1,1]], color: '#0000ff' },
-  L: { shape: [[0,0,1],[1,1,1]], color: '#ffa500' }
+  I: { shape: [[1,1,1,1]], color: '#3C4BC8' },
+  O: { shape: [[1,1],[1,1]], color: '#FF744F' },
+  T: { shape: [[0,1,0],[1,1,1]], color: '#5B26B7' },
+  S: { shape: [[0,1,1],[1,1,0]], color: '#193773' },
+  Z: { shape: [[1,1,0],[0,1,1]], color: '#FF4B4B' },
+  J: { shape: [[1,0,0],[1,1,1]], color: '#3C4BC8' },
+  L: { shape: [[0,0,1],[1,1,1]], color: '#FF744F' }
 };
 
-const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onStatsUpdate }) => {
+const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onStatsUpdate, onGameEnd }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameLoopRef = useRef<number | null>(null);
   const dropTimerRef = useRef<number | null>(null);
@@ -233,9 +234,9 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     for (let y = 0; y < BOARD_HEIGHT; y++) {
       for (let x = 0; x < BOARD_WIDTH; x++) {
         if (board[y] && board[y][x]) {
-          ctx.fillStyle = '#666';
+          ctx.fillStyle = '#CDCDCD';
           ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
-          ctx.strokeStyle = '#333';
+          ctx.strokeStyle = '#100C2A';
           ctx.strokeRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
         }
       }
@@ -250,7 +251,7 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
             const drawX = (currentPosition.x + x) * BLOCK_SIZE;
             const drawY = (currentPosition.y + y) * BLOCK_SIZE;
             ctx.fillRect(drawX, drawY, BLOCK_SIZE, BLOCK_SIZE);
-            ctx.strokeStyle = '#000';
+            ctx.strokeStyle = '#100C2A';
             ctx.strokeRect(drawX, drawY, BLOCK_SIZE, BLOCK_SIZE);
           }
         }
@@ -258,7 +259,7 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     }
 
     // Draw grid
-    ctx.strokeStyle = '#333';
+    ctx.strokeStyle = '#100C2A';
     ctx.lineWidth = 1;
     for (let x = 0; x <= BOARD_WIDTH; x++) {
       ctx.beginPath();
@@ -317,6 +318,14 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     onStatsUpdate(currentStats);
   }, [onStatsUpdate, currentPiece, currentPosition, board]);
 
+  // Call onGameEnd when game ends
+  useEffect(() => {
+    if (isGameOver && onGameEnd) {
+      const finalStats = statsEngineRef.current.getStats();
+      onGameEnd(finalStats);
+    }
+  }, [isGameOver, onGameEnd]);
+
   const resetGame = () => {
     setBoard(Array(BOARD_HEIGHT).fill(null).map(() => Array(BOARD_WIDTH).fill(0)));
     setCurrentPiece(generatePiece());
@@ -331,8 +340,8 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
   };
 
   return (
-    <Card className="bg-gradient-to-br from-slate-900 to-purple-900 border-purple-600 shadow-2xl">
-      <CardHeader className="text-center bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-t-lg">
+    <Card className="bg-white border-gray-200 shadow-2xl">
+      <CardHeader className="text-center bg-gray-800 text-white rounded-t-lg">
         <CardTitle className="text-xl font-bold">
           {playerName} (Player {playerNumber})
         </CardTitle>
@@ -342,41 +351,41 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
           ref={canvasRef}
           width={BOARD_WIDTH * BLOCK_SIZE}
           height={BOARD_HEIGHT * BLOCK_SIZE}
-          className="border-2 border-purple-400 bg-black rounded-lg shadow-inner"
+          className="border-2 border-gray-300 bg-white rounded-lg shadow-inner"
         />
         
-        <div className="grid grid-cols-2 gap-4 text-white text-sm w-full">
-          <div className="text-center bg-purple-800/50 p-2 rounded">
+        <div className="grid grid-cols-2 gap-4 text-gray-800 text-sm w-full">
+          <div className="text-center bg-gray-100 p-2 rounded">
             <div className="font-mono text-lg font-bold">{statsEngineRef.current.getStats().score.toLocaleString()}</div>
-            <div className="text-purple-200">Score</div>
+            <div className="text-gray-800">Score</div>
           </div>
-          <div className="text-center bg-blue-800/50 p-2 rounded">
-            <div className="font-mono text-lg font-bold">{statsEngineRef.current.getStats().level}</div>
-            <div className="text-blue-200">Level</div>
+          <div className="text-center bg-blue-500 p-2 rounded">
+            <div className="font-mono text-lg font-bold text-white">{statsEngineRef.current.getStats().level}</div>
+            <div className="text-white">Level</div>
           </div>
-          <div className="text-center bg-purple-800/50 p-2 rounded">
-            <div className="font-mono text-lg font-bold">{statsEngineRef.current.getStats().lines}</div>
-            <div className="text-purple-200">Lines</div>
+          <div className="text-center bg-purple-500 p-2 rounded">
+            <div className="font-mono text-lg font-bold text-white">{statsEngineRef.current.getStats().lines}</div>
+            <div className="text-white">Lines</div>
           </div>
-          <div className="text-center bg-blue-800/50 p-2 rounded">
-            <div className="font-mono text-lg font-bold">{Math.round(statsEngineRef.current.getStats().inputAccuracy)}%</div>
-            <div className="text-blue-200">Accuracy</div>
+          <div className="text-center bg-orange-500 p-2 rounded">
+            <div className="font-mono text-lg font-bold text-white">{Math.round(statsEngineRef.current.getStats().inputAccuracy)}%</div>
+            <div className="text-white">Accuracy</div>
           </div>
         </div>
 
         {/* Enhanced Stats Display */}
-        <div className="grid grid-cols-3 gap-2 text-white text-xs w-full">
-          <div className="text-center bg-green-800/50 p-2 rounded">
-            <div className="font-mono font-bold">{Math.round(statsEngineRef.current.getStats().linesPerMinute)}</div>
-            <div className="text-green-200">L/min</div>
+        <div className="grid grid-cols-3 gap-2 text-gray-800 text-xs w-full">
+          <div className="text-center bg-blue-600 p-2 rounded">
+            <div className="font-mono font-bold text-white">{Math.round(statsEngineRef.current.getStats().linesPerMinute)}</div>
+            <div className="text-white">L/min</div>
           </div>
-          <div className="text-center bg-yellow-800/50 p-2 rounded">
-            <div className="font-mono font-bold">{Math.round(statsEngineRef.current.getStats().averageReactionTime)}ms</div>
-            <div className="text-yellow-200">Avg RT</div>
+          <div className="text-center bg-orange-500 p-2 rounded">
+            <div className="font-mono font-bold text-white">{Math.round(statsEngineRef.current.getStats().averageReactionTime)}ms</div>
+            <div className="text-white">Avg RT</div>
           </div>
-          <div className="text-center bg-red-800/50 p-2 rounded">
-            <div className="font-mono font-bold">{Math.round(statsEngineRef.current.getStats().gameplayIntensity)}</div>
-            <div className="text-red-200">Intensity</div>
+          <div className="text-center bg-red-500 p-2 rounded">
+            <div className="font-mono font-bold text-white">{Math.round(statsEngineRef.current.getStats().gameplayIntensity)}</div>
+            <div className="text-white">Intensity</div>
           </div>
         </div>
 
@@ -384,7 +393,7 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
           <Button
             onClick={togglePause}
             disabled={isGameOver}
-            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+            className="bg-purple-600 hover:bg-purple-700 text-white"
           >
             {isPaused ? 'Resume' : 'Pause'}
           </Button>
@@ -392,7 +401,7 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
           {isGameOver && (
             <Button
               onClick={resetGame}
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+              className="bg-orange-500 hover:bg-orange-600 text-white"
             >
               Play Again
             </Button>
@@ -400,19 +409,19 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
         </div>
 
         {isGameOver && (
-          <div className="text-center bg-red-900/80 p-4 rounded-lg border border-red-600">
-            <div className="text-red-300 font-bold text-lg mb-2">Game Over!</div>
+          <div className="text-center bg-red-500 p-4 rounded-lg border border-red-600">
+            <div className="text-white font-bold text-lg mb-2">Game Over!</div>
             <div className="text-white">Final Score: {statsEngineRef.current.getStats().score.toLocaleString()}</div>
           </div>
         )}
 
         {isPaused && !isGameOver && (
-          <div className="text-center bg-yellow-900/80 p-4 rounded-lg border border-yellow-600">
-            <div className="text-yellow-300 font-bold">Game Paused</div>
+          <div className="text-center bg-orange-500 p-4 rounded-lg border border-orange-600">
+            <div className="text-white font-bold">Game Paused</div>
           </div>
         )}
 
-        <div className="text-xs text-purple-300 text-center bg-purple-900/30 p-2 rounded">
+        <div className="text-xs text-gray-600 text-center bg-gray-100 p-2 rounded">
           Input: keyboard | Keypresses: {statsEngineRef.current.getStats().keypressCount}
           <br />
           Controls: ← → ↓ ↑ (rotate) | Space (rotate) | Z (drop)

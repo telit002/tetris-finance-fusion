@@ -61,6 +61,17 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Custom color palette
+				custom: {
+					white: '#FFFFFF',
+					dark: '#100C2A',
+					red: '#FF4B4B',
+					orange: '#FF744F',
+					blue: '#193773',
+					lightblue: '#3C4BC8',
+					purple: '#5B26B7',
+					gray: '#CDCDCD'
 				}
 			},
 			borderRadius: {

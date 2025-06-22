@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,14 +38,18 @@ const PlayerRegistration: React.FC<PlayerRegistrationProps> = ({ onPlayerReady, 
 
   return (
     <Card className="w-full max-w-md mx-auto bg-white border-gray-200 shadow-xl transform hover:scale-105 transition-transform duration-200">
-      <CardHeader className="text-center bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-t-lg">
+      <CardHeader className="text-center text-white rounded-t-lg" style={{ background: 'linear-gradient(315deg, #FF4B4B 0%, #FF744F 100%)' }}>
         <div className="flex justify-center mb-4">
           <div className="h-10 w-36 bg-white px-3 py-2 rounded shadow-sm flex items-center justify-center">
-            <div className="text-base font-bold text-purple-700">VALANTIC</div>
+            <img 
+              src="/valantic-logo.JPG" 
+              alt="Valantic Logo" 
+              className="h-6 w-auto object-contain"
+            />
           </div>
         </div>
         <CardTitle className="text-2xl font-bold">Player {playerNumber}</CardTitle>
-        <CardDescription className="text-purple-100">
+        <CardDescription className="text-white/90">
           Join the Valantic Digital Finance Tetris Championship
         </CardDescription>
       </CardHeader>
@@ -62,7 +65,7 @@ const PlayerRegistration: React.FC<PlayerRegistrationProps> = ({ onPlayerReady, 
               value={playerData.nickname}
               onChange={(e) => handleInputChange('nickname', e.target.value)}
               placeholder="Enter your gaming nickname"
-              className="border-gray-300 focus:border-purple-500 focus:ring-purple-500 transition-colors"
+              className="border-gray-300 focus:border-red-500 focus:ring-red-500 transition-colors"
               required
             />
           </div>
@@ -77,7 +80,7 @@ const PlayerRegistration: React.FC<PlayerRegistrationProps> = ({ onPlayerReady, 
               value={playerData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
               placeholder="your.email@company.com"
-              className="border-gray-300 focus:border-purple-500 focus:ring-purple-500 transition-colors"
+              className="border-gray-300 focus:border-red-500 focus:ring-red-500 transition-colors"
             />
           </div>
           
@@ -91,7 +94,7 @@ const PlayerRegistration: React.FC<PlayerRegistrationProps> = ({ onPlayerReady, 
               value={playerData.company}
               onChange={(e) => handleInputChange('company', e.target.value)}
               placeholder="Your company name"
-              className="border-gray-300 focus:border-purple-500 focus:ring-purple-500 transition-colors"
+              className="border-gray-300 focus:border-red-500 focus:ring-red-500 transition-colors"
             />
           </div>
           
@@ -105,13 +108,14 @@ const PlayerRegistration: React.FC<PlayerRegistrationProps> = ({ onPlayerReady, 
               value={playerData.realName}
               onChange={(e) => handleInputChange('realName', e.target.value)}
               placeholder="Your real name"
-              className="border-gray-300 focus:border-purple-500 focus:ring-purple-500 transition-colors"
+              className="border-gray-300 focus:border-red-500 focus:ring-red-500 transition-colors"
             />
           </div>
           
           <Button 
             type="submit" 
-            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-3 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105"
+            className="w-full text-white font-semibold py-3 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105"
+            style={{ background: 'linear-gradient(315deg, #FF4B4B 0%, #FF744F 100%)' }}
             disabled={!playerData.nickname.trim()}
           >
             <Gamepad className="w-5 h-5 mr-2" />

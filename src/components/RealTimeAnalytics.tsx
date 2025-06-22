@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
@@ -49,6 +48,15 @@ const RealTimeAnalytics: React.FC<RealTimeAnalyticsProps> = ({ player1Stats, pla
   const formatTime = (ms: number) => {
     return ms === Infinity ? '∞' : `${Math.round(ms)}ms`;
   };
+
+  // Define performanceData for the bar chart
+  const performanceData = [
+    { range: '0-20', value: Math.round(player1Stats?.gameplayIntensity || 0) },
+    { range: '21-40', value: Math.round(player1Stats?.linesPerMinute || 0) },
+    { range: '41-60', value: Math.round(player1Stats?.inputAccuracy || 0) },
+    { range: '61-80', value: Math.round(player1Stats?.averageReactionTime || 0) },
+    { range: '81-100', value: Math.round(player1Stats?.piecesPerMinute || 0) }
+  ];
 
   return (
     <div className="space-y-6">
@@ -120,36 +128,36 @@ const RealTimeAnalytics: React.FC<RealTimeAnalyticsProps> = ({ player1Stats, pla
       </div>
 
       {/* Real-time Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-gray-800">Real-Time Performance</CardTitle>
+            <CardTitle className="text-gray-800">Real-time Intensity Tracking</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={realtimeData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                <XAxis dataKey="time" stroke="#6B7280" fontSize={12} />
-                <YAxis stroke="#6B7280" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: '1px solid #E5E7EB',
+                <CartesianGrid strokeDasharray="3 3" stroke="#CDCDCD" />
+                <XAxis dataKey="time" stroke="#100C2A" fontSize={12} />
+                <YAxis stroke="#100C2A" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #CDCDCD',
                     borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                  }} 
+                    color: '#100C2A'
+                  }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="player1Intensity" 
-                  stroke="#7C3AED" 
+                <Line
+                  type="monotone"
+                  dataKey="player1Intensity"
+                  stroke="#5B26B7"
                   strokeWidth={2}
                   name="P1 Intensity"
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="player2Intensity" 
-                  stroke="#2563EB" 
+                <Line
+                  type="monotone"
+                  dataKey="player2Intensity"
+                  stroke="#3C4BC8"
                   strokeWidth={2}
                   name="P2 Intensity"
                 />
@@ -160,22 +168,30 @@ const RealTimeAnalytics: React.FC<RealTimeAnalyticsProps> = ({ player1Stats, pla
 
         <Card className="bg-white/90 backdrop-blur-sm border-gray-200 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-gray-800">Performance Radar</CardTitle>
+            <CardTitle className="text-gray-800">Performance Distribution</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
-              <RadarChart data={getPerformanceRadarData(player1Stats)}>
-                <PolarGrid />
-                <PolarAngleAxis dataKey="metric" />
-                <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                <Radar
+              <BarChart data={performanceData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#CDCDCD" />
+                <XAxis dataKey="range" stroke="#100C2A" />
+                <YAxis stroke="#100C2A" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #CDCDCD',
+                    borderRadius: '8px',
+                    color: '#100C2A'
+                  }}
+                />
+                <Bar
                   name="Player 1"
                   dataKey="value"
-                  stroke="#7C3AED"
-                  fill="#7C3AED"
+                  stroke="#5B26B7"
+                  fill="#5B26B7"
                   fillOpacity={0.3}
                 />
-              </RadarChart>
+              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
