@@ -1,11 +1,12 @@
-
 import React, { useState, useCallback } from 'react';
 import PlayerRegistration from '@/components/PlayerRegistration';
-import TetrisGame, { GameStats } from '@/components/TetrisGame';
+import TetrisGame from '@/components/TetrisGame';
 import GameDashboard from '@/components/GameDashboard';
+import RealTimeAnalytics from '@/components/RealTimeAnalytics';
 import WebSocketManager from '@/components/WebSocketManager';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DetailedGameStats } from '@/utils/statsEngine';
 
 interface PlayerData {
   nickname: string;
@@ -18,8 +19,8 @@ const Index = () => {
   const [gameState, setGameState] = useState<'registration' | 'playing'>('registration');
   const [player1Data, setPlayer1Data] = useState<PlayerData | null>(null);
   const [player2Data, setPlayer2Data] = useState<PlayerData | null>(null);
-  const [player1Stats, setPlayer1Stats] = useState<GameStats | null>(null);
-  const [player2Stats, setPlayer2Stats] = useState<GameStats | null>(null);
+  const [player1Stats, setPlayer1Stats] = useState<DetailedGameStats | null>(null);
+  const [player2Stats, setPlayer2Stats] = useState<DetailedGameStats | null>(null);
 
   const handlePlayer1Ready = (data: PlayerData) => {
     setPlayer1Data(data);
@@ -43,11 +44,11 @@ const Index = () => {
     setPlayer2Stats(null);
   };
 
-  const handlePlayer1StatsUpdate = useCallback((stats: GameStats) => {
+  const handlePlayer1StatsUpdate = useCallback((stats: DetailedGameStats) => {
     setPlayer1Stats(stats);
   }, []);
 
-  const handlePlayer2StatsUpdate = useCallback((stats: GameStats) => {
+  const handlePlayer2StatsUpdate = useCallback((stats: DetailedGameStats) => {
     setPlayer2Stats(stats);
   }, []);
 
@@ -193,7 +194,13 @@ const Index = () => {
           )}
         </div>
 
-        {/* Analytics Dashboard */}
+        {/* Enhanced Real-Time Analytics */}
+        <RealTimeAnalytics 
+          player1Stats={player1Stats}
+          player2Stats={player2Stats}
+        />
+
+        {/* Original Dashboard */}
         <GameDashboard 
           player1Stats={player1Stats}
           player2Stats={player2Stats}

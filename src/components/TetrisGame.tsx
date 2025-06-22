@@ -1,7 +1,7 @@
-
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { StatsEngine, DetailedGameStats } from '@/utils/statsEngine';
 
 export interface GameStats {
   score: number;
@@ -18,7 +18,7 @@ export interface GameStats {
 interface TetrisGameProps {
   playerNumber: number;
   playerName: string;
-  onStatsUpdate: (stats: GameStats) => void;
+  onStatsUpdate: (stats: DetailedGameStats) => void;
 }
 
 const BOARD_WIDTH = 10;
@@ -40,6 +40,7 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
   const gameLoopRef = useRef<number | null>(null);
   const dropTimerRef = useRef<number | null>(null);
   const lastDropTime = useRef<number>(0);
+  const statsEngineRef = useRef<StatsEngine>(new StatsEngine());
   
   const [board, setBoard] = useState<number[][]>(() => 
     Array(BOARD_HEIGHT).fill(null).map(() => Array(BOARD_WIDTH).fill(0))
@@ -47,22 +48,10 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
   
   const [currentPiece, setCurrentPiece] = useState<any>(null);
   const [currentPosition, setCurrentPosition] = useState({ x: 4, y: 0 });
+
   const [isGameOver, setIsGameOver] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
-  const [stats, setStats] = useState<GameStats>({
-    score: 0,
-    level: 1,
-    lines: 0,
-    tetrises: 0,
-    piecesPlaced: 0,
-    reactionTimes: [],
-    sessionStart: Date.now(),
-    keypressCount: 0,
-    inputMethod: 'keyboard'
-  });
-
-  // Generate random piece
   const generatePiece = useCallback(() => {
     const pieces = Object.keys(TETROMINOES);
     const randomPiece = pieces[Math.floor(Math.random() * pieces.length)] as keyof typeof TETROMINOES;
@@ -73,7 +62,6 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     };
   }, []);
 
-  // Check collision
   const checkCollision = useCallback((piece: any, pos: { x: number; y: number }, gameBoard: number[][]) => {
     if (!piece || !piece.shape) return true;
     
@@ -96,7 +84,6 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     return false;
   }, []);
 
-  // Rotate piece
   const rotatePiece = useCallback((piece: any) => {
     if (!piece || !piece.shape) return piece;
     const rotated = piece.shape[0].map((_: any, index: number) =>
@@ -105,7 +92,7 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     return { ...piece, shape: rotated };
   }, []);
 
-  // Clear lines
+  // Clear lines with enhanced tracking
   const clearLines = useCallback((gameBoard: number[][]) => {
     const newBoard = gameBoard.filter(row => row.some(cell => cell === 0));
     const linesCleared = BOARD_HEIGHT - newBoard.length;
@@ -117,13 +104,9 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
       const scoreIncrease = linesCleared === 4 ? 1000 : linesCleared * 100;
       const isTetris = linesCleared === 4;
       
-      setStats(prev => ({
-        ...prev,
-        lines: prev.lines + linesCleared,
-        score: prev.score + scoreIncrease,
-        tetrises: prev.tetrises + (isTetris ? 1 : 0),
-        level: Math.floor((prev.lines + linesCleared) / 10) + 1
-      }));
+      // Enhanced stats tracking
+      statsEngineRef.current.recordLinesCleared(linesCleared, isTetris);
+      statsEngineRef.current.recordScore(scoreIncrease);
       
       return updatedBoard;
     }
@@ -131,7 +114,7 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     return gameBoard;
   }, []);
 
-  // Place piece on board
+  // Place piece with enhanced tracking
   const placePiece = useCallback((piece: any, pos: { x: number; y: number }, gameBoard: number[][]) => {
     if (!piece || !piece.shape) return gameBoard;
     
@@ -149,22 +132,22 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
       }
     }
     
-    setStats(prev => ({
-      ...prev,
-      piecesPlaced: prev.piecesPlaced + 1
-    }));
+    // Enhanced stats tracking
+    statsEngineRef.current.recordPiecePlaced();
     
     return clearLines(newBoard);
   }, [clearLines]);
 
-  // Move piece
+  // Move piece with enhanced input tracking
   const movePiece = useCallback((dx: number, dy: number, rotate = false) => {
     if (isGameOver || isPaused || !currentPiece) return;
 
-    setStats(prev => ({
-      ...prev,
-      keypressCount: prev.keypressCount + 1
-    }));
+    // Determine input type and validate move
+    let inputType = 'move';
+    if (rotate) inputType = 'rotate';
+    else if (dx < 0) inputType = 'left';
+    else if (dx > 0) inputType = 'right';
+    else if (dy > 0) inputType = 'down';
 
     let newPiece = currentPiece;
     if (rotate) {
@@ -176,13 +159,17 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
       y: currentPosition.y + dy
     };
 
-    if (!checkCollision(newPiece, newPosition, board)) {
+    const isValidMove = !checkCollision(newPiece, newPosition, board);
+    
+    // Record input with validation
+    statsEngineRef.current.recordInput(inputType, isValidMove);
+
+    if (isValidMove) {
       setCurrentPiece(newPiece);
       setCurrentPosition(newPosition);
     }
   }, [isGameOver, isPaused, currentPiece, currentPosition, board, rotatePiece, checkCollision]);
 
-  // Drop piece
   const dropPiece = useCallback(() => {
     if (isGameOver || isPaused || !currentPiece) return;
 
@@ -209,7 +196,6 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     }
   }, [isGameOver, isPaused, currentPiece, currentPosition, board, checkCollision, placePiece, generatePiece]);
 
-  // Keyboard controls
   const handleKeyPress = useCallback((event: KeyboardEvent) => {
     event.preventDefault();
     switch (event.key) {
@@ -233,7 +219,6 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     }
   }, [movePiece, dropPiece]);
 
-  // Drawing function
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -289,7 +274,6 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     }
   }, [board, currentPiece, currentPosition]);
 
-  // Game loop
   useEffect(() => {
     const gameLoop = () => {
       const now = Date.now();
@@ -312,7 +296,6 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     };
   }, [dropPiece, draw, isGameOver, isPaused]);
 
-  // Initialize game
   useEffect(() => {
     if (!currentPiece) {
       const initialPiece = generatePiece();
@@ -321,7 +304,6 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     }
   }, [currentPiece, generatePiece]);
 
-  // Keyboard event listeners
   useEffect(() => {
     window.addEventListener('keydown', handleKeyPress);
     return () => {
@@ -329,10 +311,11 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     };
   }, [handleKeyPress]);
 
-  // Update stats callback
+  // Update stats callback with enhanced data
   useEffect(() => {
-    onStatsUpdate(stats);
-  }, [stats, onStatsUpdate]);
+    const currentStats = statsEngineRef.current.getStats();
+    onStatsUpdate(currentStats);
+  }, [onStatsUpdate, currentPiece, currentPosition, board]);
 
   const resetGame = () => {
     setBoard(Array(BOARD_HEIGHT).fill(null).map(() => Array(BOARD_WIDTH).fill(0)));
@@ -340,17 +323,7 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
     setCurrentPosition({ x: 4, y: 0 });
     setIsGameOver(false);
     setIsPaused(false);
-    setStats({
-      score: 0,
-      level: 1,
-      lines: 0,
-      tetrises: 0,
-      piecesPlaced: 0,
-      reactionTimes: [],
-      sessionStart: Date.now(),
-      keypressCount: 0,
-      inputMethod: 'keyboard'
-    });
+    statsEngineRef.current.reset();
   };
 
   const togglePause = () => {
@@ -374,20 +347,36 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
         
         <div className="grid grid-cols-2 gap-4 text-white text-sm w-full">
           <div className="text-center bg-purple-800/50 p-2 rounded">
-            <div className="font-mono text-lg font-bold">{stats.score.toLocaleString()}</div>
+            <div className="font-mono text-lg font-bold">{statsEngineRef.current.getStats().score.toLocaleString()}</div>
             <div className="text-purple-200">Score</div>
           </div>
           <div className="text-center bg-blue-800/50 p-2 rounded">
-            <div className="font-mono text-lg font-bold">{stats.level}</div>
+            <div className="font-mono text-lg font-bold">{statsEngineRef.current.getStats().level}</div>
             <div className="text-blue-200">Level</div>
           </div>
           <div className="text-center bg-purple-800/50 p-2 rounded">
-            <div className="font-mono text-lg font-bold">{stats.lines}</div>
+            <div className="font-mono text-lg font-bold">{statsEngineRef.current.getStats().lines}</div>
             <div className="text-purple-200">Lines</div>
           </div>
           <div className="text-center bg-blue-800/50 p-2 rounded">
-            <div className="font-mono text-lg font-bold">{stats.tetrises}</div>
-            <div className="text-blue-200">Tetrises</div>
+            <div className="font-mono text-lg font-bold">{Math.round(statsEngineRef.current.getStats().inputAccuracy)}%</div>
+            <div className="text-blue-200">Accuracy</div>
+          </div>
+        </div>
+
+        {/* Enhanced Stats Display */}
+        <div className="grid grid-cols-3 gap-2 text-white text-xs w-full">
+          <div className="text-center bg-green-800/50 p-2 rounded">
+            <div className="font-mono font-bold">{Math.round(statsEngineRef.current.getStats().linesPerMinute)}</div>
+            <div className="text-green-200">L/min</div>
+          </div>
+          <div className="text-center bg-yellow-800/50 p-2 rounded">
+            <div className="font-mono font-bold">{Math.round(statsEngineRef.current.getStats().averageReactionTime)}ms</div>
+            <div className="text-yellow-200">Avg RT</div>
+          </div>
+          <div className="text-center bg-red-800/50 p-2 rounded">
+            <div className="font-mono font-bold">{Math.round(statsEngineRef.current.getStats().gameplayIntensity)}</div>
+            <div className="text-red-200">Intensity</div>
           </div>
         </div>
 
@@ -413,7 +402,7 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
         {isGameOver && (
           <div className="text-center bg-red-900/80 p-4 rounded-lg border border-red-600">
             <div className="text-red-300 font-bold text-lg mb-2">Game Over!</div>
-            <div className="text-white">Final Score: {stats.score.toLocaleString()}</div>
+            <div className="text-white">Final Score: {statsEngineRef.current.getStats().score.toLocaleString()}</div>
           </div>
         )}
 
@@ -424,7 +413,7 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ playerNumber, playerName, onSta
         )}
 
         <div className="text-xs text-purple-300 text-center bg-purple-900/30 p-2 rounded">
-          Input: {stats.inputMethod} | Keypresses: {stats.keypressCount}
+          Input: keyboard | Keypresses: {statsEngineRef.current.getStats().keypressCount}
           <br />
           Controls: ← → ↓ ↑ (rotate) | Space (rotate) | Z (drop)
         </div>
