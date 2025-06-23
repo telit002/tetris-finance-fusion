@@ -30,7 +30,7 @@ jobs:
           npm run build
           cd ..
       - name: List build output
-        run: ls -la build/
+        run: ls -la dist/
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -39,4 +39,4 @@ jobs:
           action: "upload"
           app_location: "/"
           api_location: "/api"
-          output_location: "build" 
+          output_location: "dist" 
