@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import { GameStats } from './TetrisGame';
 
@@ -106,7 +105,7 @@ const WebSocketManager: React.FC<WebSocketManagerProps> = ({
         <span className="text-gray-800 font-medium">SAP Analytics Cloud Connection Active</span>
       </div>
       <div className="text-sm text-gray-600 mt-2 flex items-center gap-2">
-        <span>Real-time data streaming to Valantic Digital Finance Analytics Dashboard</span>
+        <span>Real-time data streaming to valantic Digital Finance Analytics Dashboard</span>
         <div className="flex gap-1">
           <div className="w-1 h-4 bg-purple-400 animate-pulse"></div>
           <div className="w-1 h-4 bg-blue-400 animate-pulse" style={{ animationDelay: '0.2s' }}></div>

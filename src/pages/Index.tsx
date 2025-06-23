@@ -108,7 +108,7 @@ const Index = () => {
               </div>
             </div>
             <h1 className="text-4xl font-bold text-gray-800 mb-2">
-              Valantic Digital Finance
+              valantic Digital Finance
             </h1>
             <h2 className="text-3xl font-bold mb-4" style={{ background: 'linear-gradient(315deg, #FF4B4B 0%, #FF744F 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
               Multiplayer Tetris Championship

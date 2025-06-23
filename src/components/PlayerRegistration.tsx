@@ -49,9 +49,6 @@ const PlayerRegistration: React.FC<PlayerRegistrationProps> = ({ onPlayerReady, 
           </div>
         </div>
         <CardTitle className="text-2xl font-bold">Player {playerNumber}</CardTitle>
-        <CardDescription className="text-white/90">
-          Join the Valantic Digital Finance Tetris Championship
-        </CardDescription>
       </CardHeader>
       <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-4">
