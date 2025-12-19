@@ -3,10 +3,12 @@ import axios from 'axios';
 // In production (Static Web Apps), use the built-in `/api` route of the deployed app:
 //   https://black-field-07a75c203.6.azurestaticapps.net/api
 // In development, keep using the local Functions host.
-const API_BASE_URL =
-  process.env.NODE_ENV === 'production'
-    ? '/api'
-    : 'http://localhost:7071/api';
+// Detect production at runtime based on the deployed hostname instead of using import.meta types.
+const isDeployedStaticWebApp =
+  typeof window !== 'undefined' &&
+  window.location.hostname.endsWith('.azurestaticapps.net');
+
+const API_BASE_URL = isDeployedStaticWebApp ? '/api' : 'http://localhost:7071/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,

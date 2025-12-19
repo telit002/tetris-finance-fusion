@@ -1,12 +1,13 @@
 import { CosmosClient, Database, Container } from '@azure/cosmos';
 
+// Prefer explicit endpoint/key configuration; this avoids undefined connection string issues
 const endpoint = process.env.COSMOSDB_ENDPOINT!;
 const key = process.env.COSMOSDB_KEY!;
 const databaseId = process.env.COSMOSDB_DATABASE!;
 const containerId = process.env.COSMOSDB_CONTAINER!;
 
-const client = new CosmosClient({ endpoint, key });
-const database: Database = client.database(databaseId);
+const cosmos = new CosmosClient({ endpoint, key });
+const database: Database = cosmos.database(databaseId);
 const container: Container = database.container(containerId);
 
 export interface Player {
@@ -20,4 +21,4 @@ export interface Player {
   gameData?: any;
 }
 
-export { client, database, container }; 
+export { cosmos, database, container }; 
