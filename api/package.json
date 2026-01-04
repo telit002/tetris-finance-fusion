@@ -2,7 +2,7 @@
   "name": "tetris-finance-fusion-api",
   "version": "1.0.0",
   "description": "Azure Functions API for Tetris Finance Fusion",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "start": "func start",
     "build": "tsc",
