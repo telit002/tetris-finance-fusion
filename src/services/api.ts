@@ -1,14 +1,15 @@
 import axios from 'axios';
 
-// In production (Static Web Apps), use the built-in `/api` route of the deployed app:
-//   https://black-field-07a75c203.6.azurestaticapps.net/api
+// In production, call the dedicated Azure Function App backend.
+//   https://tetris-finance-fusion-api-cedkbmcxe2hbccfd.westeurope-01.azurewebsites.net/api
 // In development, keep using the local Functions host.
-// Detect production at runtime based on the deployed hostname instead of using import.meta types.
-const isDeployedStaticWebApp =
+const isProd =
   typeof window !== 'undefined' &&
   window.location.hostname.endsWith('.azurestaticapps.net');
 
-const API_BASE_URL = isDeployedStaticWebApp ? '/api' : 'http://localhost:7071/api';
+const API_BASE_URL = isProd
+  ? 'https://tetris-finance-fusion-api-cedkbmcxe2hbccfd.westeurope-01.azurewebsites.net/api'
+  : 'http://localhost:7071/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
