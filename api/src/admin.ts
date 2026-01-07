@@ -1,7 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
 import { container, database } from './cosmosClient';
 
-app.http('admin', {
+app.http('admin-api', {
   methods: ['GET', 'POST', 'DELETE'],
   authLevel: 'anonymous',
   handler: async (request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> => {
