@@ -90,13 +90,13 @@ export const playerAPI = {
 export const adminAPI = {
   // Get database statistics
   getStats: async (): Promise<AdminStats> => {
-    const response = await api.get('/admin-api?action=stats');
+    const response = await api.get('/admin?action=stats');
     return response.data;
   },
 
   // Export all data
   exportData: async (): Promise<ExportData> => {
-    const response = await api.post('/admin-api?action=export');
+    const response = await api.post('/admin?action=export');
     return response.data;
   },
 
